@@ -1,0 +1,894 @@
+body { margin: 0; background-color: #000; overflow: hidden; font-family: Arial, sans-serif; }
+#game-container { width: 960px; height: 540px; aspect-ratio:16/9; position: absolute; top: 0; left: 0; background-color: #000; overflow: hidden; }
+
+/* Update your scene class to be more aggressive */
+.scene {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden; /* Added: makes it invisible to clicks */
+  pointer-events: none; /* Added: ensures clicks pass through */
+  transition: opacity 1.2s ease;
+  background-size: cover;
+  background-position: center;
+}
+
+/* When active, it becomes clickable */
+.scene.active {
+  opacity: 1;
+  visibility: visible; /* Added */
+  pointer-events: auto; /* Added */
+}
+
+/* Ensure the video container itself allows clicks */
+.video-container {
+  width: 480px;
+  height: 270px;
+  position: relative;
+  z-index: 999; /* Higher than anything else */
+  pointer-events: auto !important; 
+}
+
+.video-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* IMAGES */
+#scene-1 { background-image: url("../assets/images/startingpicture1.jpeg"); }
+#scene-2 { background-image: url("../assets/images/POVscene2.jpg"); }
+#scene-3 { background-image: url("../assets/images/startingpicture2.jpg"); }
+/* Scene 5 Layout: Row based (Duck Left, Video Right) */
+#scene-5 { 
+  background-image: url("../assets/images/teachingbg.jpg"); 
+  flex-direction: row; 
+  justify-content: center; 
+  align-items: center;
+  gap: 20px;
+}
+
+/* TEXT BOXES (Black background requested) */
+.wake-text, .instruction, .dialogue-box, .duck-speech-bubble {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  padding: 15px 25px; border-radius: 12px; color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2); font-family: Georgia, serif;
+}
+.title { font-family: "Playfair Display", serif; font-size: 90px; color: rgba(13, 28, 76, 0.8); margin-bottom: 20px; text-align: center; }
+.wake-text { font-size: 24px; max-width: 80%; text-align: center; }
+
+/* Instruction Positioning */
+.instruction { font-size: 22px; position: absolute; bottom: 80px; z-index: 10; }
+
+/* BUTTONS */
+#start-btn, .next-btn, .choice-btn, .confirm-btn {
+  padding: 15px 40px; font-family: Georgia, serif; font-size: 20px;
+  border: none; border-radius: 20px; cursor: pointer;
+  background-color: #cbe2ec; color: #1a0549;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2); transition: 0.2s;
+}
+#start-btn:hover, .next-btn:hover, .choice-btn:hover, .confirm-btn:hover { transform: scale(1.05); }
+
+/* CHARACTER SELECTION */
+#scene-character-select { background: linear-gradient(180deg, #18346c, #5d7fa5); }
+.selection-title { color: #cbe2ec; font-family: "Playfair Display", serif; font-size: 36px; margin-bottom: 10px; }
+.selection-subtitle { color: white; font-family: Georgia, serif; font-size: 20px; margin-bottom: 30px; }
+.character-options { display: flex; gap: 20px; margin-bottom: 30px; }
+.character-option { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.3s; }
+.character-option:hover { transform: translateY(-10px); }
+.character-bubble { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 3px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+.character-option.selected .character-bubble { transform: scale(1.1); box-shadow: 0 0 20px #cbe2ec; border-color: #cbe2ec; }
+.character-name { color: white; margin-top: 10px; font-family: Georgia, serif; }
+.character-icon { width: 50px; height: 50px; object-fit: contain; }
+
+/* BOTTLE & NOTE */
+.bottle-container { cursor: pointer; transition: transform 0.3s; z-index: 5; }
+.bottle-container:hover { transform: translateY(-10px); }
+/* Class to lock click until instructions are done */
+.bottle-locked { pointer-events: none; opacity: 0.9; }
+
+.bottle { width: 250px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3)); }
+.bottle.pop-out { transform: scale(2); opacity: 0; transition: 0.5s; pointer-events: none; }
+
+.message-paper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.paper-image { width: 380px; animation: paperAppear 0.5s ease-out; }
+@keyframes paperAppear { from { transform: scale(0); } to { transform: scale(1); } }
+
+/* CLICK CONTINUE - TOP RIGHT */
+.click-continue { 
+  position: absolute; top: 30px; right: 30px;
+  color: white; background: rgba(0,0,0,0.7); padding: 10px 20px; 
+  border-radius: 5px; animation: pulse 2s infinite; cursor: pointer;
+  font-family: Georgia, serif;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+/* DIALOGUE BOX */
+.dialogue-box { position: absolute; bottom: 30px; width: 80%; display: flex; gap: 20px; align-items: center; z-index: 60; text-align: left; }
+.player-icon { width: 80px; height: 80px; border-radius: 50%; border: 2px solid white; background: rgba(0,0,0,0.3); overflow: hidden; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
+.player-icon img { width: 80%; height: 80%; object-fit: contain; }
+.dialogue-content { flex: 1; position: relative; }
+.speaker-label { color: #cbe2ec; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; }
+.continue-arrow { position: absolute; right: 0; bottom: 0; animation: bounce 1s infinite; font-size: 20px; cursor: pointer;}
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+
+/* SCENE 5 ITEMS */
+.teaching-duck-container { position: relative; width: 300px; display: flex; flex-direction: column; align-items: center; }
+.teaching-duck-image { width: 250px; }
+.duck-speech-bubble { 
+  position: absolute; top: -40px; right: -50px; width: 200px; 
+  z-index: 10; background-color: rgba(255,255,255,0.95) !important; color: #1a0549; font-weight: bold;
+}
+.duck-speech-bubble::after { content: ''; position: absolute; left: 20px; bottom: -15px; border-width: 15px 15px 0 0; border-style: solid; border-color: rgba(255,255,255,0.95) transparent transparent transparent; }
+
+
+/* Title Fix: Two lines and better spacing */
+.video-title {
+  color: rgb(251, 250, 255);
+  font-family: "Playfair Display", serif;
+  font-size: 28px;
+  line-height: 1.2;
+  text-align: center;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+/* Video Frame Layout */
+.video-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px; /* Spacing between title, video, and button */
+}
+
+/* Ensure the video container is clickable */
+.video-container {
+  width: 480px;
+  height: 270px;
+  background: #000;
+  pointer-events: auto !important;
+}
+
+/* Continue Button Styling */
+#video-continue-btn {
+  margin-top: 10px;
+  padding: 12px 30px;
+  background-color: #ffd700; /* Golden yellow for visibility */
+  color: #1a0549;
+  font-weight: bold;
+  border-radius: 50px;
+  border: 3px solid #1a0549;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#video-continue-btn:hover {
+  transform: scale(1.1);
+  background-color: #fff;
+}
+
+.hidden { display: none !important; }
+#blink-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 999; opacity: 0; pointer-events: none; }
+#blink-overlay.blink { animation: blinkPOV 3s ease forwards; }
+@keyframes blinkPOV { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+/* Scene 6 Specific Layout */
+#scene-6 {
+  background-image: url("../assets/images/teachingbg.jpg");
+  flex-direction: row;
+  justify-content: flex-start; /* Duck on the left */
+  padding-left: 50px;
+}
+
+.duck-moving {
+  width: 300px;
+  transition: all 1.5s ease-out;
+  transform: translateX(-100px); /* Starts slightly off */
+}
+
+/* Class to trigger the movement forward */
+.duck-forward {
+  transform: translateX(0) scale(1.1);
+}
+
+.teaching-duck-container-large {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.impact-content {
+  margin-left: 20px;
+  max-width: 500px;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 20px;
+  border-radius: 20px;
+  border: 2px solid #ffd700;
+}
+
+.typing-header {
+  color: #ffd700;
+  font-family: "Playfair Display", serif;
+  font-size: 32px;
+  margin-bottom: 15px;
+  border-right: 3px solid #ffd700; /* Cursor effect */
+  white-space: nowrap;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.impact-text {
+  color: white;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.continue-arrow-small {
+  color: #1a0549;
+  text-align: right;
+  cursor: pointer;
+  font-size: 24px;
+  animation: bounce 1s infinite;
+}
+
+#scene-7 {
+  background-image: url("../assets/images/teachingbg.jpg");
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 40px;
+}
+
+.cards-title {
+  color: rgb(11, 8, 49);
+  font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif, serif;
+  font-size: 32px;
+  text-shadow: 2px 2px 4px rgb(255, 255, 255);
+  margin-bottom: 40px;
+}
+
+.flashcard-container {
+  display: flex;
+  gap: 18px;
+  perspective: 1000px; /* Required for 3D effect */
+  width: 95%;
+  justify-content: center;
+}
+
+/* THE CARD STYLING */
+.card {
+  width: 170px; /* Bigger cards */
+  height: 270px;
+  cursor: pointer;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  border-radius: 15px;
+}
+
+/* The actual flip class added by JS */
+.card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden; /* Hides the back when looking at front */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  padding: 15px;
+  border: 3px solid #ffd700;
+}
+
+.card-front {
+  background-color: #1a0549;
+  color: #ffd700;
+  font-size: 60px;
+  font-weight: bold;
+}
+
+.card-back {
+  background-color: #ffffff;
+  color: #1a0549;
+  transform: rotateY(180deg);
+}
+
+.card-back h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.card-back p {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#cards-ok-btn {
+  margin-top: 40px;
+}
+
+
+/* Scene 8 Background */
+#scene-8 { 
+  background-image: url("../assets/images/campfire.jpg"); 
+  justify-content: center;
+}
+
+.duck-static {
+  width: 300px;
+}
+
+#start-quiz-btn {
+  margin-top: 30px;
+  background-color: #e48d40; 
+  color: white;
+  border: 2px solid white;
+}
+
+#scene-10 { background-color: #d6c6e6; } 
+
+#quiz-progress {
+  position: absolute; top: 20px; left: 20px;
+  font-size: 32px; font-weight: bold; color: #1a0549;
+  background: white; padding: 10px 20px; border-radius: 10px;
+}
+
+.quiz-container { width: 80%; text-align: center; }
+
+#question-box {
+  background: #0071bc; color: white; padding: 30px;
+  font-size: 28px; border-radius: 15px; margin-bottom: 20px;
+  border: 4px solid #1a0549;
+}
+
+.answer-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+}
+
+.quiz-btn {
+  padding: 20px; font-size: 18px; border-radius: 12px; border: none;
+  cursor: pointer; color: white; font-weight: bold; transition: transform 0.1s;
+}
+#quiz-next-btn {
+    min-width: 180px;
+}
+/* Colors matching the image */
+.quiz-btn:nth-child(1) { background: #052f44; }
+.quiz-btn:nth-child(2) { background: #052f44; }
+.quiz-btn:nth-child(3) { background: #052f44; }
+.quiz-btn:nth-child(4) { background: #052f44; }
+
+.quiz-btn:hover { transform: scale(1.02); }
+
+/* Flash Effects */
+.flash-red { animation: flashRed 0.5s; }
+.flash-green { animation: flashGreen 0.5s; }
+
+@keyframes flashRed {
+  0%, 100% { background-color: #d6c6e6; }
+  50% { background-color: #ff4d4d; }
+}
+@keyframes flashGreen {
+  0%, 100% { background-color: #d6c6e6; }
+  50% { background-color: #4dff88; }
+}
+
+#quiz-feedback {
+  margin-top: 20px; padding: 20px; background: rgba(255,255,255,0.9);
+  border-radius: 15px; color: #1a0549;
+}
+
+
+
+/* Scene 11 Specific Layout Fixes */
+#scene-11 {
+    background-image: url("../assets/images/campfire.jpg"); 
+    background-size: cover;
+    background-position: center;
+    /* Change to Row so duck is on left and content is on right */
+    flex-direction: row !important; 
+    justify-content: center;
+    align-items: center;
+    padding: 0 50px;
+}
+
+/* Update the container for better alignment */
+.victory-content {
+    z-index: 20;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    pointer-events: auto;
+    /* FIX: Give it a set width and margin-right to center it in the remaining space */
+    width: 450px; 
+    margin-right: 20px; 
+}
+
+/* Update choice buttons to be more compact */
+#victory-options .choice-btn {
+    width: 280px;      /* Set a fixed, reasonable width */
+    padding: 12px 20px; /* Slimmer padding */
+    font-size: 16px;    /* Slightly smaller font for better fit */
+    margin: 5px 0;      /* Vertical spacing between buttons */
+    line-height: 1.3;
+    text-align: center;
+}
+
+/* Victory Bubble specific tweak so it doesn't overlap the duck's face */
+#victory-bubble {
+    position: absolute;
+    top: -50px;
+    left: 180px;
+    width: 250px;
+    z-index: 21;
+}
+
+/* Final Speech Box Styling */
+#final-text {
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffd700;
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #ffd700;
+    max-width: 600px;
+    min-height: 100px;
+    font-size: 18px;
+    line-height: 1.4;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* The "Let's get going" button needs to stand out */
+#lets-go-btn {
+    background-color: #ffd700;
+    color: #1a0549;
+    font-weight: bold;
+    border: 2px solid #fff;
+}
+
+/* Ensure fireworks don't block button clicks */
+#fireworks-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; 
+    z-index: 5;
+}
+
+/* Fix the firework animation syntax */
+.firework {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 6;
+    animation: explode 1s ease-out forwards;
+}
+
+@keyframes explode {
+    0% { transform: translate(0, 0); opacity: 1; }
+    100% { transform: translate(var(--x), var(--y)); opacity: 0; }
+}
+/* --- SCENE 12 STYLING --- */
+#scene-12 {
+  background-color: #0b1d3a; /* Dark Blue */
+  background-image: none; /* Override default if needed */
+  flex-direction: column;
+}
+
+.text-box {
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 20px 40px;
+  border-radius: 12px;
+  color: #ffd700;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 20px;
+  z-index: 10;
+}
+
+/* PHONE CONTAINER & ANIMATION */
+.phone-container {
+    width: 300px;           /* Fixed width so it doesn't squeeze */
+    height: 550px;          /* Proper aspect ratio */
+    background: #111;
+    border-radius: 40px;
+    border: 8px solid #333;
+    overflow: hidden;       /* Keeps messages inside the frame */
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
+    position: relative;
+    transition: transform 0.5s ease;
+}
+
+.phone-container.slide-up {
+  transform: translateY(50px); /* Adjust based on view */
+}
+
+.phone-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.phone-frame {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Let clicks pass through to screen */
+  z-index: 10;
+}
+
+.phone-screen {
+  position: absolute;
+  top: 15px; left: 18px; /* Adjust based on your png frame borders */
+  width: 265px; 
+  height: 570px; /* Adjust based on your png frame borders */
+  background-color: #333;
+  background-image: linear-gradient(to bottom, #2c3e50, #000000);
+  border-radius: 30px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* NOTIFICATION STYLE */
+#phone-notification {
+  padding-top: 100px;
+  display: flex;
+  justify-content: center;
+}
+
+.notif-bubble {
+  background: rgba(255, 255, 255, 0.95);
+  width: 90%;
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  animation: popIn 0.3s ease-out;
+}
+
+.app-icon { width: 40px; height: 40px; border-radius: 8px; }
+.notif-text { color: black; font-size: 12px; flex: 1; font-family: Arial, sans-serif; }
+.notif-time { color: #666; font-size: 10px; align-self: flex-start; }
+
+/* CHAT STYLE */
+#phone-chat {
+  width: 100%; height: 100%;
+  background: #fff;
+  display: flex; flex-direction: column;
+}
+
+.chat-header {
+  background: #f0f0f0;
+  padding: 15px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid #ccc;
+  color: black; font-weight: bold; font-family: Arial, sans-serif;
+}
+.chat-avatar { width: 30px; height: 30px; border-radius: 50%; }
+
+.chat-body {
+  flex: 1; padding: 15px;
+  background: #e5ddd5;
+  display: flex; flex-direction: column;
+}
+
+.chat-msg {
+  padding: 10px 15px;
+  border-radius: 10px;
+  max-width: 80%;
+  margin-bottom: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  font-family: Arial, sans-serif;
+  position: relative;
+  color: black;
+}
+
+.received {
+  background: #fff;
+  align-self: flex-start;
+  border-bottom-left-radius: 0;
+}
+
+/* CHOICES STYLING */
+.choice-container-vertical {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 80%;
+  z-index: 50;
+}
+
+/* --- Fix 1: Animations (Define these once at the top) --- */
+@keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+@keyframes flashRedAnim {
+    0% { box-shadow: inset 0 0 150px rgba(255, 0, 0, 1); background: rgba(255, 0, 0, 0.1); }
+    100% { box-shadow: inset 0 0 0px rgba(255, 0, 0, 0); background: transparent; }
+}
+
+@keyframes flashGreenAnim {
+    0% { box-shadow: inset 0 0 150px rgba(0, 255, 0, 1); background: rgba(0, 255, 0, 0.1); }
+    100% { box-shadow: inset 0 0 0px rgba(0, 255, 0, 0); background: transparent; }
+}
+
+/* --- Helper Classes --- */
+.vibrate {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+.flash-red { animation: flashRedAnim 0.6s ease-out forwards; }
+.flash-green { animation: flashGreenAnim 0.6s ease-out forwards; }
+
+/* --- Scene 12 Elements --- */
+#s12-dialogue {
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; 
+    gap: 10px;
+    padding: 20px;
+}
+
+#s12-dialogue .speaker-label {
+    align-self: flex-start;
+    margin-bottom: 5px;
+    border-bottom: 2px solid #ffd700;
+    width: fit-content;
+}
+
+#s12-dialogue .dialogue-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+}
+
+#s12-dialogue .player-icon {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+}
+
+/* --- Scam Choice Buttons --- */
+.scam-btn {
+    background-color: white !important;
+    color: #007AFF !important;
+    border: 3px solid #007AFF !important;
+    border-radius: 30px !important; 
+    padding: 20px !important;
+    font-size: 1.1rem !important; /* Consolidated to your preferred size */
+    font-weight: bold;
+    width: 90%;
+    margin: 10px auto;
+    cursor: pointer;
+    display: block;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.scam-btn:hover {
+    background-color: #f0f8ff !important;
+    transform: translateY(-2px);
+}
+
+/* --- Feedback Box --- */
+#scam-feedback {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 95%;
+    background: rgba(255, 255, 255, 0.95);
+    border: 4px solid #4a90e2;
+    border-radius: 15px;
+    padding: 20px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 150px;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+}
+
+.feedback-buttons {
+    margin-top: 20px;
+}
+
+#scene-14 {
+    background: linear-gradient(180deg, #97bccc 0%, #ffffff 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Reward Content Layout */
+.reward-content {
+    text-align: center;
+    animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#reward-badge {
+    width: 200px;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
+    margin-bottom: 10px;
+}
+
+.keepsake-label {
+    font-family: 'Brush Script MT', cursive; /* Beautiful handwriting font */
+    font-size: 30px;
+    color: #5d7fa5;
+    margin: 0;
+}
+
+.victory-title {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 40px;
+    color: #1a0549;
+    text-transform: uppercase;
+    margin: 10px 0 40px 0;
+    line-height: 1.1;
+}
+
+#play-again-btn {
+    background-color: #1a0549;
+    color: white;
+}
+
+/* Specific Background for Scene 13 */
+#scene-13 {
+    background-image: url("../assets/images/ending.jpeg") !important; /* !important ensures it beats the black background */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+/* Container to align duck and bubble horizontally */
+.ending-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 90%;
+    max-width: 1000px;
+    gap: 30px; /* Space between duck and bubble */
+    margin-bottom: 50px;
+}
+
+/* Smaller Duck on the left */
+.ending-duck {
+    width: 180px; /* Adjust size as needed */
+    height: auto;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3));
+}
+
+/* Wide Speech Bubble on the right */
+.speech-bubble-wide {
+    background: white;
+    border: 4px solid #333;
+    border-radius: 20px;
+    padding: 20px 30px;
+    position: relative;
+    max-width: 600px; /* Increased width to prevent text stacking */
+    min-height: 100px;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+}
+
+/* The "Tail" of the bubble pointing LEFT toward the duck */
+.speech-bubble-wide::after {
+    content: '';
+    position: absolute;
+    left: -20px; /* Points left */
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 10px 20px 10px 0;
+    border-style: solid;
+    border-color: transparent white transparent transparent;
+}
+
+.speech-bubble-wide .speech-content {
+    font-size: 1.1rem;
+    line-height: 1.4;
+    color: #1a2a6c;
+    font-weight: bold;
+}
+
+/* Position the "Sail Home" button clearly at the bottom */
+#sail-home-btn {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    background-color: #b3d9ff;
+    border: 2px solid #1a2a6c;
+    border-radius: 50px;
+    transition: transform 0.2s;
+}
+
+#sail-home-btn:hover {
+    transform: scale(1.1);
+}
+/* Add this to your CSS file */
+.fade-in-bubble {
+    animation: bubbleAppear 0.8s ease-out forwards;
+}
+
+@keyframes bubbleAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px); /* Starts slightly lower */
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.video-frame {
+    position: relative;
+    z-index: 10; /* Ensures it sits above background elements */
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    height: 0;
+    overflow: hidden;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20; /* The highest priority for clicking */
+}
